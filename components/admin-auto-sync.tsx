@@ -3,7 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { syncAdminDatabase } from '@/lib/data-store'
 
-const SYNC_INTERVAL_MS = 8000
+/** Keep Free-tier Fluid CPU low — was 8s and burned quota with admin tabs left open. */
+const SYNC_INTERVAL_MS = 60_000
 
 type AdminAutoSyncContextValue = {
   syncing: boolean
@@ -51,9 +52,38 @@ export function AdminAutoSyncProvider({
 
   useEffect(() => {
     if (!enabled) return
+
+    let intervalId: ReturnType<typeof setInterval> | null = null
+
+    const clear = () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+        intervalId = null
+      }
+    }
+
+    const arm = () => {
+      clear()
+      const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden'
+      // Skip polling while the tab is hidden — biggest Free-tier CPU saver.
+      if (hidden) return
+      intervalId = setInterval(syncNow, SYNC_INTERVAL_MS)
+    }
+
+    const onVisibility = () => {
+      arm()
+      if (document.visibilityState === 'visible') {
+        void syncNow()
+      }
+    }
+
     syncNow()
-    const interval = setInterval(syncNow, SYNC_INTERVAL_MS)
-    return () => clearInterval(interval)
+    arm()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      clear()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [enabled, syncNow])
 
   return (
@@ -79,9 +109,12 @@ export function useAdminAutoSync() {
 
 /** Re-fetch page data whenever background sync completes. */
 export function useOnAdminDbSync(callback: () => void) {
+  const cb = useRef(callback)
+  cb.current = callback
+
   useEffect(() => {
-    const handler = () => callback()
+    const handler = () => cb.current()
     window.addEventListener('admin:db-synced', handler)
     return () => window.removeEventListener('admin:db-synced', handler)
-  }, [callback])
+  }, [])
 }
