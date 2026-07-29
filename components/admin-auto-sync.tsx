@@ -3,8 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { syncAdminDatabase } from '@/lib/data-store'
 
-/** Keep Free-tier Fluid CPU low — was 8s and burned quota with admin tabs left open. */
-const SYNC_INTERVAL_MS = 60_000
+/** Default poll — 3 min keeps Free Fluid CPU low when Filtering/admin stays open. */
+export const DEFAULT_SYNC_INTERVAL_MS = 3 * 60_000
 
 type AdminAutoSyncContextValue = {
   syncing: boolean
@@ -19,9 +19,12 @@ const AdminAutoSyncContext = createContext<AdminAutoSyncContextValue | null>(nul
 export function AdminAutoSyncProvider({
   enabled,
   children,
+  /** Override poll interval (ms). Still pauses when the tab is hidden. */
+  intervalMs = DEFAULT_SYNC_INTERVAL_MS,
 }: {
   enabled: boolean
   children: React.ReactNode
+  intervalMs?: number
 }) {
   const [syncing, setSyncing] = useState(false)
   const [lastSyncedAt, setLastSyncedAt] = useState<Date | null>(null)
@@ -67,7 +70,7 @@ export function AdminAutoSyncProvider({
       const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden'
       // Skip polling while the tab is hidden — biggest Free-tier CPU saver.
       if (hidden) return
-      intervalId = setInterval(syncNow, SYNC_INTERVAL_MS)
+      intervalId = setInterval(syncNow, intervalMs)
     }
 
     const onVisibility = () => {
@@ -84,7 +87,7 @@ export function AdminAutoSyncProvider({
       clear()
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [enabled, syncNow])
+  }, [enabled, syncNow, intervalMs])
 
   return (
     <AdminAutoSyncContext.Provider value={{ syncing, lastSyncedAt, lastMessage, lastOk, syncNow }}>

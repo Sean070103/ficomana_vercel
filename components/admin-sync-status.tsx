@@ -16,7 +16,7 @@ export default function AdminSyncStatus() {
     ? lastMessage || 'Sync failed — click to retry'
     : timeLabel
       ? `Last synced ${timeLabel}`
-      : 'Auto-sync to database every 8s'
+      : 'Click to sync with the database now'
 
   return (
     <button
