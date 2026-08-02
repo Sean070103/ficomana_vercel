@@ -1,6 +1,27 @@
 {
   "bookings": [
     {
+      "id": "FM-957296",
+      "customerName": "Sean Michael Andrew Mendoza",
+      "customerEmail": "mendozaseanmichaelandrewb2345@gmail.com",
+      "customerPhone": "09636533613",
+      "customerFbLink": "test",
+      "customerFbName": "test",
+      "packageId": "fico-3",
+      "packageName": "FICO 3 — Solo or Duo",
+      "bookingDate": "2026-08-08",
+      "bookingTime": "Operating hours · Arrive before 4:00 PM",
+      "arrivalTime": "Arrive anytime before 4:00 PM",
+      "shootTime": "Flexible (before 4:00 PM)",
+      "isWalkIn": false,
+      "depositAmount": 0,
+      "price": 700,
+      "bookingStatus": "Confirmed",
+      "paymentStatus": "Unpaid",
+      "createdAt": "2026-08-02T09:58:41.493Z",
+      "paymentHistory": []
+    },
+    {
       "id": "FM-100009",
       "customerName": "Michael Almeria",
       "customerEmail": "main.michael.almeria@cvsu.edu.ph",

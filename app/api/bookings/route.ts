@@ -20,7 +20,7 @@ import {
   sendBookingSubmittedEmail,
 } from '@/lib/email'
 import { isPlaceholderCustomerEmail } from '@/lib/customer-email'
-import { usesMakeupSlots } from '@/lib/booking-packages'
+import { usesMakeupSlots, packageRequiresDeposit } from '@/lib/booking-packages'
 import {
   findSlotByBookingTime,
   formatSlotBookingTime,
@@ -162,16 +162,18 @@ export async function POST(request: Request) {
     }
 
     const isStaffCreate = !isExisting && !!staffUser && !staffAuthError
+    const requiresDeposit = packageRequiresDeposit(incoming.packageId)
 
     // Public creates: never trust client privilege fields (status, staff notes, etc.).
     // Staff creates (walk-ins) may set Confirmed + receipt.
+    // Self-portrait (FICO/MANA): no online deposit — confirm immediately, pay at studio.
     const booking = normalizeBookingSchedule(
       isExisting
         ? incoming
         : isStaffCreate
           ? {
               ...incoming,
-              depositAmount: Number(incoming.depositAmount) || 500,
+              depositAmount: Number(incoming.depositAmount) || (requiresDeposit ? 500 : 0),
               driveLink: undefined,
               rawPhotoLink: undefined,
               rawPhotoStatus: undefined,
@@ -182,33 +184,54 @@ export async function POST(request: Request) {
               editedPhotoDeliveredAt: undefined,
               paymentHistory: Array.isArray(incoming.paymentHistory) ? incoming.paymentHistory : [],
             }
-          : {
-              ...incoming,
-              bookingStatus: 'Pending Verification',
-              paymentStatus: 'Pending Verification',
-              rejectionReason: undefined,
-              rejectionReasonId: undefined,
-              staffNotes: undefined,
-              driveLink: undefined,
-              rawPhotoLink: undefined,
-              rawPhotoStatus: undefined,
-              rawPhotoNotes: undefined,
-              rawPhotoSubmittedAt: undefined,
-              rawPhotoApprovedAt: undefined,
-              editedPhotoLink: undefined,
-              editedPhotoDeliveredAt: undefined,
-              depositAmount: 500,
-              paymentHistory: [
-                {
-                  id: 'PAY-' + Math.floor(1000 + Math.random() * 9000),
-                  amount: 500,
-                  method: incoming.paymentHistory?.[0]?.method || 'BPI',
-                  type: 'Deposit',
-                  transactionRef: incoming.transactionRef || incoming.paymentHistory?.[0]?.transactionRef,
-                  date: new Date().toISOString(),
-                },
-              ],
-            },
+          : requiresDeposit
+            ? {
+                ...incoming,
+                bookingStatus: 'Pending Verification',
+                paymentStatus: 'Pending Verification',
+                rejectionReason: undefined,
+                rejectionReasonId: undefined,
+                staffNotes: undefined,
+                driveLink: undefined,
+                rawPhotoLink: undefined,
+                rawPhotoStatus: undefined,
+                rawPhotoNotes: undefined,
+                rawPhotoSubmittedAt: undefined,
+                rawPhotoApprovedAt: undefined,
+                editedPhotoLink: undefined,
+                editedPhotoDeliveredAt: undefined,
+                depositAmount: 500,
+                paymentHistory: [
+                  {
+                    id: 'PAY-' + Math.floor(1000 + Math.random() * 9000),
+                    amount: 500,
+                    method: incoming.paymentHistory?.[0]?.method || 'BPI',
+                    type: 'Deposit',
+                    transactionRef: incoming.transactionRef || incoming.paymentHistory?.[0]?.transactionRef,
+                    date: new Date().toISOString(),
+                  },
+                ],
+              }
+            : {
+                ...incoming,
+                bookingStatus: 'Confirmed',
+                paymentStatus: 'Unpaid',
+                rejectionReason: undefined,
+                rejectionReasonId: undefined,
+                staffNotes: undefined,
+                driveLink: undefined,
+                rawPhotoLink: undefined,
+                rawPhotoStatus: undefined,
+                rawPhotoNotes: undefined,
+                rawPhotoSubmittedAt: undefined,
+                rawPhotoApprovedAt: undefined,
+                editedPhotoLink: undefined,
+                editedPhotoDeliveredAt: undefined,
+                receiptUrl: undefined,
+                transactionRef: undefined,
+                depositAmount: 0,
+                paymentHistory: [],
+              },
     )
 
     // Contact/status-only edits must not fail when the slot is already occupied

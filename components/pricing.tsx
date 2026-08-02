@@ -25,7 +25,7 @@ const packages = [
   {
     id: 'fico-package',
     name: 'FICO PACKAGE',
-    subtitle: 'Without Hair and Makeup',
+    subtitle: '',
     price: 'Php 3,500',
   },
   {
@@ -81,9 +81,11 @@ export default function Pricing() {
                 <h3 className="text-sm md:text-[15px] font-semibold tracking-[0.18em] text-white uppercase">
                   {pkg.name}
                 </h3>
-                <p className="mt-2 text-[11px] md:text-xs font-light text-white/50 tracking-[0.08em]">
-                  {pkg.subtitle}
-                </p>
+                {pkg.subtitle ? (
+                  <p className="mt-2 text-[11px] md:text-xs font-light text-white/50 tracking-[0.08em]">
+                    {pkg.subtitle}
+                  </p>
+                ) : null}
                 <p className="mt-4 text-lg md:text-xl font-light text-white tracking-[0.06em]">
                   {pkg.price}
                 </p>

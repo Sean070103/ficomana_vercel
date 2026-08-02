@@ -510,11 +510,51 @@ export async function sendDepositApprovedEmails(booking: Record<string, unknown>
   return sendEmail({ bookingId: String(booking.id), to: customerEmail, subject, html })
 }
 
-/** Single email when customer submits booking + receipt upload. */
+/** Single email when customer submits booking (+ receipt when deposit is required). */
 export async function sendBookingSubmittedEmail(booking: Record<string, unknown>) {
   const customerEmail = String(booking.customerEmail ?? '').trim()
   if (!customerEmail) {
     return { success: false, error: 'No customer email on booking' }
+  }
+
+  const depositAmount = Number(booking.depositAmount ?? 0)
+  const noDeposit = depositAmount <= 0
+
+  if (noDeposit) {
+    const subject = `Booking Confirmed — ${booking.id}`
+    const html = brandedEmail(
+      'Booking Confirmed',
+      `
+      <p>Hello <strong>${booking.customerName}</strong>,</p>
+      <p>Your FICO MANA session is <strong style="color: #16A34A;">confirmed</strong>. No online deposit is required — please pay the full package amount at the studio on your shoot day.</p>
+
+      <table style="width: 100%; font-size: 13px; margin: 16px 0; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: #5A5A8A; border-bottom: 1px solid #EEF0FF;">Reference</td>
+          <td style="padding: 8px 0; font-weight: bold; color: #0500D0; font-family: monospace; border-bottom: 1px solid #EEF0FF;">${booking.id}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #5A5A8A; border-bottom: 1px solid #EEF0FF;">Package</td>
+          <td style="padding: 8px 0; font-weight: bold; border-bottom: 1px solid #EEF0FF;">${booking.packageName}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #5A5A8A; border-bottom: 1px solid #EEF0FF;">Session</td>
+          <td style="padding: 8px 0; font-weight: bold; border-bottom: 1px solid #EEF0FF;">${booking.bookingDate} · ${booking.bookingTime}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #5A5A8A;">Amount due at studio</td>
+          <td style="padding: 8px 0; font-weight: bold;">₱${Number(booking.price ?? 0).toFixed(2)}</td>
+        </tr>
+      </table>
+
+      <div style="background-color: #EEF0FF; padding: 14px; border-left: 3px solid #0500D0; margin: 16px 0;">
+        <p style="margin: 0; font-size: 12px; color: #5A5A8A; line-height: 1.6;">
+          Please save this email as your booking confirmation and arrive on time for your session.
+        </p>
+      </div>
+    `,
+    )
+    return sendEmail({ bookingId: String(booking.id), to: customerEmail, subject, html })
   }
 
   const subject = `Booking Received — ${booking.id}`

@@ -39,7 +39,7 @@ const graduationPackages: BookingPackage[] = [
     title: 'FICO PACKAGE',
     price: '₱3,500',
     duration: '30 mins',
-    description: 'Without Hair and Makeup.',
+    description: '',
     features: [
       'Free use of Toga & Cap',
       'Free use of Alampay',
@@ -110,7 +110,7 @@ const selfPortraitPackages: BookingPackage[] = [...ficoPackages, ...manaPackages
   duration: durationFromIncludes(pkg.includes),
   description: pkg.note ?? pkg.title,
   features: pkg.includes,
-  slotType: /hair and makeup/i.test(pkg.title) ? ('makeup' as const) : ('standard' as const),
+  slotType: pkg.id === 'fico-4' || /hair and makeup/i.test(pkg.title) ? ('makeup' as const) : ('standard' as const),
   badge: pkg.badge,
   note: pkg.note,
 }))
@@ -130,7 +130,14 @@ export function parsePackagePrice(price: string): number {
 }
 
 export function usesMakeupSlots(packageId: string): boolean {
-  // Retired packages stay bookable historically; keep slot rules for admin/calendar.
+  // Keep explicit fico-4 rule for older booking rows if package metadata is missing.
   if (packageId === 'fico-4') return true
   return getBookingPackage(packageId)?.slotType === 'makeup'
+}
+
+/** FICO / MANA self-portrait packages: no online deposit — pay in full at the studio. */
+export function packageRequiresDeposit(packageId: string): boolean {
+  const pkg = getBookingPackage(packageId)
+  if (!pkg) return true
+  return pkg.category !== 'self-portrait'
 }

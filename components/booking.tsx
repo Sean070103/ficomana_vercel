@@ -13,7 +13,7 @@ import BpiQrDisplay from '@/components/bpi-qr-display'
 import { saveBooking, uploadReceipt, getBookingsForAvailability, getBooking, getBookingPackages, getBlockedSlots, getFicoSpotBlocks } from '@/lib/data-store'
 import { getBlockedSlot, type BlockedSlot } from '@/lib/blocked-slots'
 import { getFicoBookableLimit, getFicoSpotBlock, type FicoSpotBlock } from '@/lib/fico-spot-blocks'
-import { getBookingPackage, usesMakeupSlots, parsePackagePrice, type BookingPackage, type BookingPackageCategory } from '@/lib/booking-packages'
+import { getBookingPackage, usesMakeupSlots, parsePackagePrice, packageRequiresDeposit, type BookingPackage, type BookingPackageCategory } from '@/lib/booking-packages'
 import {
   GRADUATION_TOGA_NOTE,
   HOOD_COLOR_GRID,
@@ -63,9 +63,25 @@ const btnPrimaryClass =
 const stepNavClass =
   'flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 sm:pt-6 border-t border-white/10'
 
-function StepProgress({ step, isGraduation }: { step: number; isGraduation: boolean }) {
-  const steps = isGraduation ? [1, 2, 3, 4, 5] : [1, 2, 4, 5]
-  const labels = isGraduation ? STEP_LABELS : ['Package', 'Date & Slot', 'Your Info', 'Deposit']
+function StepProgress({
+  step,
+  isGraduation,
+  requiresDeposit,
+}: {
+  step: number
+  isGraduation: boolean
+  requiresDeposit: boolean
+}) {
+  const steps = isGraduation
+    ? [1, 2, 3, 4, 5]
+    : requiresDeposit
+      ? [1, 2, 4, 5]
+      : [1, 2, 4]
+  const labels = isGraduation
+    ? STEP_LABELS
+    : requiresDeposit
+      ? ['Package', 'Date & Slot', 'Your Info', 'Deposit']
+      : ['Package', 'Date & Slot', 'Your Info']
 
   return (
     <div className="mb-6 sm:mb-10 px-1">
@@ -195,6 +211,9 @@ function BookingForm() {
   }, [searchParams])
 
   const isGraduationPackage = selectedSession?.category === 'graduation'
+  const requiresDeposit = selectedSession
+    ? packageRequiresDeposit(selectedSession.id)
+    : activeCategory !== 'self-portrait'
   const isMakeupPackage = selectedSession ? usesMakeupSlots(selectedSession.id) : false
   const dateKey = selectedDate ? formatDateKey(selectedDate) : ''
   const ficoBookableLimit =
@@ -268,9 +287,9 @@ function BookingForm() {
     ? { schoolName, course }
     : undefined
 
-  const submitBooking = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedSession || !selectedDate || !receiptFile || (isMakeupPackage && !selectedSlotId)) return
+  const submitBooking = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!selectedSession || !selectedDate || (requiresDeposit && !receiptFile) || (isMakeupPackage && !selectedSlotId)) return
     setIsSubmitting(true)
     setFormError('')
     try {
@@ -299,13 +318,14 @@ function BookingForm() {
       setBookingId(id)
       setSubmittedSummary({
         paymentMethod,
-        transactionRef: transactionRef.trim(),
-        depositAmount: 500,
+        transactionRef: requiresDeposit ? transactionRef.trim() : '',
+        depositAmount: requiresDeposit ? 500 : 0,
         packageName: selectedSession.title,
         bookingDate: dk,
       })
       const slot = isMakeupPackage ? getSlotById(selectedSlotId) : undefined
-      const receiptUrl = await uploadReceipt(id, receiptFile, email)
+      const receiptUrl =
+        requiresDeposit && receiptFile ? await uploadReceipt(id, receiptFile, email) : undefined
       const graduationNote = isGraduationPackage
         ? [note, `School: ${schoolName}`, `Course: ${course}`].filter(Boolean).join(' · ')
         : note
@@ -327,23 +347,29 @@ function BookingForm() {
         note: graduationNote || undefined,
         schoolName: isGraduationPackage ? schoolName : undefined,
         course: isGraduationPackage ? course : undefined,
-        depositAmount: 500,
+        depositAmount: requiresDeposit ? 500 : 0,
         price: parsePackagePrice(selectedSession.price),
-        transactionRef: transactionRef.trim(),
-        bookingStatus: 'Pending Verification' as const,
-        paymentStatus: 'Pending Verification' as const,
+        transactionRef: requiresDeposit ? transactionRef.trim() : undefined,
+        bookingStatus: (requiresDeposit ? 'Pending Verification' : 'Confirmed') as
+          | 'Pending Verification'
+          | 'Confirmed',
+        paymentStatus: (requiresDeposit ? 'Pending Verification' : 'Unpaid') as
+          | 'Pending Verification'
+          | 'Unpaid',
         createdAt: new Date().toISOString(),
         receiptUrl,
-        paymentHistory: [
-          {
-            id: 'PAY-' + Math.floor(1000 + Math.random() * 9000),
-            amount: 500,
-            method: paymentMethod,
-            type: 'Deposit' as const,
-            transactionRef: transactionRef || undefined,
-            date: new Date().toISOString(),
-          },
-        ],
+        paymentHistory: requiresDeposit
+          ? [
+              {
+                id: 'PAY-' + Math.floor(1000 + Math.random() * 9000),
+                amount: 500,
+                method: paymentMethod,
+                type: 'Deposit' as const,
+                transactionRef: transactionRef || undefined,
+                date: new Date().toISOString(),
+              },
+            ]
+          : [],
       }
       const { booking: saved } = await saveBooking(booking)
       setStep(6)
@@ -378,7 +404,11 @@ function BookingForm() {
       <SectionHeader
         eyebrow="Booking Portal"
         title="Reserve Your Session"
-        description="Select your session, choose a slot on our interactive calendar, pay the ₱500 deposit via BPI, upload your receipt, and await verification."
+        description={
+          requiresDeposit
+            ? 'Select your session, choose a slot on our interactive calendar, pay the ₱500 deposit via BPI, upload your receipt, and await verification.'
+            : 'Select your FICO or MANA package, choose a date, and confirm your details. No online deposit — pay in full at the studio on your shoot day.'
+        }
         align="center"
       />
 
@@ -387,7 +417,13 @@ function BookingForm() {
         id="booking-panel"
         className={`max-w-6xl mx-auto scroll-mt-28 ${cardClass} p-4 sm:p-6 md:p-10`}
       >
-        {step < 6 && <StepProgress step={step} isGraduation={!!isGraduationPackage} />}
+        {step < 6 && (
+          <StepProgress
+            step={step}
+            isGraduation={!!isGraduationPackage}
+            requiresDeposit={requiresDeposit}
+          />
+        )}
 
         {formError && (
           <div className="mb-5 border border-white/20 bg-white/5 px-4 py-3 text-sm text-white">
@@ -795,7 +831,11 @@ function BookingForm() {
             onSubmit={(e) => {
               e.preventDefault()
               if (!validateContactStep()) return
-              setStep(5)
+              if (requiresDeposit) {
+                setStep(5)
+                return
+              }
+              void submitBooking()
             }}
           >
             <div className="mb-6">
@@ -855,11 +895,19 @@ function BookingForm() {
             </div>
 
             <div className={`${stepNavClass} mt-6 sm:mt-8`}>
-              <button type="button" onClick={goBackFromContact} className={btnBackClass}>
+              <button type="button" onClick={goBackFromContact} className={btnBackClass} disabled={isSubmitting}>
                 Back
               </button>
-              <button type="submit" className={btnPrimaryClass + ' gap-2'}>
-                Proceed to Payment <ArrowRight className="w-4 h-4" />
+              <button type="submit" disabled={isSubmitting} className={btnPrimaryClass + ' gap-2'}>
+                {isSubmitting
+                  ? 'Submitting...'
+                  : requiresDeposit
+                    ? (
+                      <>
+                        Proceed to Payment <ArrowRight className="w-4 h-4" />
+                      </>
+                      )
+                    : 'Submit Booking'}
               </button>
             </div>
           </form>
@@ -926,8 +974,14 @@ function BookingForm() {
             <div className="w-14 h-14 rounded-full bg-primary/15 flex items-center justify-center mx-auto border border-primary/30">
               <Check className="w-7 h-7 text-white" />
             </div>
-            <h3 className="text-xl font-semibold text-white">Booking Submitted</h3>
-            <p className="text-sm text-white/70">Your deposit is pending verification. You will receive a confirmation email once approved.</p>
+            <h3 className="text-xl font-semibold text-white">
+              {(submittedSummary?.depositAmount ?? 500) === 0 ? 'Booking Confirmed' : 'Booking Submitted'}
+            </h3>
+            <p className="text-sm text-white/70">
+              {(submittedSummary?.depositAmount ?? 500) === 0
+                ? 'Your session is reserved. Full payment is due at the studio on your shoot day. A confirmation email is on the way.'
+                : 'Your deposit is pending verification. You will receive a confirmation email once approved.'}
+            </p>
             <div className="border border-primary/30 bg-primary/10 p-6 space-y-4 text-left">
               <div>
                 <p className="text-[9px] uppercase tracking-wider text-white/40">Booking Reference</p>
@@ -937,48 +991,73 @@ function BookingForm() {
                 </button>
               </div>
               <div className="border-t border-primary/20 pt-4 space-y-2 text-sm">
-                <p className="text-[9px] uppercase tracking-wider text-white/40">Payment Submitted</p>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div>
-                    <p className="text-white/40">Method</p>
-                    <p className="font-semibold text-white">{submittedSummary?.paymentMethod ?? paymentMethod}</p>
-                  </div>
-                  <div>
-                    <p className="text-white/40">Deposit</p>
-                    <p className="font-semibold text-white">₱{(submittedSummary?.depositAmount ?? 500).toFixed(2)}</p>
-                  </div>
-                  <div className="col-span-2">
-                    <p className="text-white/40">BPI Transaction Reference</p>
-                    <p className="font-mono font-bold text-white text-base mt-0.5">
-                      {submittedSummary?.transactionRef || transactionRef.trim() || 'Not provided'}
-                    </p>
-                    {(submittedSummary?.transactionRef || transactionRef.trim()) && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const ref = submittedSummary?.transactionRef || transactionRef.trim()
-                          if (ref) {
-                            navigator.clipboard.writeText(ref)
-                            setCopiedRef(true)
-                          }
-                        }}
-                        className="text-[10px] text-white mt-2 inline-flex items-center gap-1"
-                      >
-                        <Copy className="w-3 h-3" /> {copiedRef ? 'Copied!' : 'Copy transaction ref'}
-                      </button>
+                {(submittedSummary?.depositAmount ?? 500) === 0 ? (
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <p className="text-white/40">Payment</p>
+                      <p className="font-semibold text-white">Pay at studio</p>
+                    </div>
+                    <div>
+                      <p className="text-white/40">Deposit</p>
+                      <p className="font-semibold text-white">None</p>
+                    </div>
+                    {(submittedSummary?.packageName || selectedSession) && (
+                      <div className="col-span-2">
+                        <p className="text-white/40">Package · Date</p>
+                        <p className="text-white/80">
+                          {submittedSummary?.packageName ?? selectedSession?.title}
+                          {' · '}
+                          {submittedSummary?.bookingDate ?? (selectedDate ? formatDateKey(selectedDate) : '—')}
+                        </p>
+                      </div>
                     )}
                   </div>
-                  {(submittedSummary?.packageName || selectedSession) && (
-                    <div className="col-span-2">
-                      <p className="text-white/40">Package · Date</p>
-                      <p className="text-white/80">
-                        {submittedSummary?.packageName ?? selectedSession?.title}
-                        {' · '}
-                        {submittedSummary?.bookingDate ?? (selectedDate ? formatDateKey(selectedDate) : '—')}
-                      </p>
+                ) : (
+                  <>
+                    <p className="text-[9px] uppercase tracking-wider text-white/40">Payment Submitted</p>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <p className="text-white/40">Method</p>
+                        <p className="font-semibold text-white">{submittedSummary?.paymentMethod ?? paymentMethod}</p>
+                      </div>
+                      <div>
+                        <p className="text-white/40">Deposit</p>
+                        <p className="font-semibold text-white">₱{(submittedSummary?.depositAmount ?? 500).toFixed(2)}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-white/40">BPI Transaction Reference</p>
+                        <p className="font-mono font-bold text-white text-base mt-0.5">
+                          {submittedSummary?.transactionRef || transactionRef.trim() || 'Not provided'}
+                        </p>
+                        {(submittedSummary?.transactionRef || transactionRef.trim()) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const ref = submittedSummary?.transactionRef || transactionRef.trim()
+                              if (ref) {
+                                navigator.clipboard.writeText(ref)
+                                setCopiedRef(true)
+                              }
+                            }}
+                            className="text-[10px] text-white mt-2 inline-flex items-center gap-1"
+                          >
+                            <Copy className="w-3 h-3" /> {copiedRef ? 'Copied!' : 'Copy transaction ref'}
+                          </button>
+                        )}
+                      </div>
+                      {(submittedSummary?.packageName || selectedSession) && (
+                        <div className="col-span-2">
+                          <p className="text-white/40">Package · Date</p>
+                          <p className="text-white/80">
+                            {submittedSummary?.packageName ?? selectedSession?.title}
+                            {' · '}
+                            {submittedSummary?.bookingDate ?? (selectedDate ? formatDateKey(selectedDate) : '—')}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
               </div>
             </div>
             <button type="button" onClick={resetBooking} className={btnBackClass + ' inline-flex items-center gap-2'}>
