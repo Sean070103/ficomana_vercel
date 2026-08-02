@@ -733,6 +733,16 @@ function EditorTab({
       })
   }, [visible, selectedDay])
 
+  const dayFolderStats = useMemo(() => {
+    let todo = 0
+    let overdue = 0
+    for (const b of dayBookings) {
+      if (!b.editedPhotoLink) todo += 1
+      if (getEditorDeadlineInfo(b).overdue) overdue += 1
+    }
+    return { todo, overdue }
+  }, [dayBookings])
+
   const overdueCount = useMemo(
     () => bookings.filter((b) => getEditorDeadlineInfo(b).overdue).length,
     [bookings],
@@ -881,7 +891,10 @@ function EditorTab({
       {!selectedDay ? (
         dayFolders.length === 0 ? (
           <div className={`${adminEmptyState} p-16`}>
-            <Folder className="w-7 h-7 text-white/30" />
+            <div className="relative mb-2">
+              <div className="absolute -top-1 left-3 h-2.5 w-10 rounded-t-md bg-white/10" />
+              <Folder className="relative w-10 h-10 text-white/25" />
+            </div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-white">
               {filter === 'todo' ? 'No jobs waiting' : 'Nothing here'}
             </h3>
@@ -892,90 +905,147 @@ function EditorTab({
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">
-                Shoot-day folders
+          <div className="space-y-4">
+            <div className="flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">
+                  Shoot-day folders
+                </p>
+                <p className="text-xs text-white/30 mt-1">
+                  Open a day to edit and deliver jobs from that shoot.
+                </p>
+              </div>
+              <p className="text-[10px] font-mono text-white/35 tabular-nums shrink-0">
+                {dayFolders.length} folder{dayFolders.length === 1 ? '' : 's'}
               </p>
-              <p className="text-[10px] text-white/35">{dayFolders.length} folder{dayFolders.length === 1 ? '' : 's'}</p>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
               {dayFolders.map((folder) => {
                 const isToday = folder.date === todayKey()
                 const done = folder.total - folder.todo
                 const progress = folder.total > 0 ? Math.round((done / folder.total) * 100) : 0
+                const dayNum = folder.date.slice(8, 10)
+                const monthLabel = (() => {
+                  const d = new Date(`${folder.date}T12:00:00`)
+                  if (Number.isNaN(d.getTime())) return ''
+                  return d.toLocaleDateString('en-PH', { month: 'short' }).toUpperCase()
+                })()
+                const weekday = (() => {
+                  const d = new Date(`${folder.date}T12:00:00`)
+                  if (Number.isNaN(d.getTime())) return ''
+                  return d.toLocaleDateString('en-PH', { weekday: 'long' })
+                })()
+                const tone =
+                  folder.overdue > 0
+                    ? {
+                        tab: 'bg-red-500/25 border-red-500/35',
+                        icon: 'text-red-300',
+                        bar: 'bg-red-400',
+                        ring: 'hover:border-red-500/40 focus-visible:ring-red-500/40',
+                      }
+                    : folder.todo > 0
+                      ? {
+                          tab: 'bg-amber-500/20 border-amber-500/30',
+                          icon: 'text-amber-300',
+                          bar: 'bg-primary',
+                          ring: 'hover:border-amber-500/35 focus-visible:ring-primary/40',
+                        }
+                      : {
+                          tab: 'bg-emerald-500/20 border-emerald-500/30',
+                          icon: 'text-emerald-300',
+                          bar: 'bg-emerald-400',
+                          ring: 'hover:border-emerald-500/35 focus-visible:ring-emerald-500/30',
+                        }
+
                 return (
                   <button
                     key={folder.date}
                     type="button"
                     onClick={() => setSelectedDay(folder.date)}
-                    className={`${adminCard} ${adminCardHover} p-4 text-left space-y-3 ${
-                      folder.overdue > 0 ? 'ring-1 ring-red-500/30' : isToday ? 'ring-1 ring-primary/35' : ''
-                    }`}
+                    className={`group relative text-left outline-none focus-visible:ring-2 ${tone.ring}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <div
-                          className={`rounded-lg border p-2 ${
-                            folder.overdue > 0
-                              ? 'border-red-500/30 bg-red-500/10 text-red-300'
-                              : folder.todo > 0
-                                ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
-                                : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
-                          }`}
-                        >
-                          <FolderOpen className="w-4 h-4" />
-                        </div>
+                    {/* Folder tab */}
+                    <div
+                      className={`relative z-10 ml-3 inline-flex items-center gap-1.5 rounded-t-lg border border-b-0 px-3 py-1 ${tone.tab}`}
+                    >
+                      <FolderOpen className={`w-3 h-3 ${tone.icon}`} />
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-white/70">
+                        {monthLabel}
+                      </span>
+                      {isToday && (
+                        <span className="text-[8px] font-bold uppercase tracking-wider text-primary">
+                          Today
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Folder body */}
+                    <div
+                      className={`relative -mt-px rounded-xl rounded-tl-none border border-white/10 bg-gradient-to-br from-white/[0.07] via-white/[0.03] to-transparent p-4 pt-3.5 transition-all duration-300 group-hover:border-white/20 group-hover:bg-white/[0.05] group-hover:shadow-[0_12px_40px_rgba(0,0,0,0.35)] ${
+                        folder.overdue > 0
+                          ? 'border-red-500/25'
+                          : isToday
+                            ? 'border-primary/30'
+                            : ''
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-white truncate">
-                              {formatDayFolderLabel(folder.date)}
-                            </p>
-                            {isToday && (
-                              <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
-                                Today
-                              </span>
-                            )}
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-3xl font-semibold tabular-nums tracking-tight text-white leading-none">
+                              {dayNum}
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-white truncate">{weekday}</p>
+                              <p className="text-[10px] font-mono text-white/40 mt-0.5">{folder.date}</p>
+                            </div>
                           </div>
-                          <p className="text-[10px] font-mono text-white/40 mt-0.5">{folder.date}</p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-xl font-bold tabular-nums text-white leading-none">{folder.total}</p>
+                          <p className="text-[9px] uppercase tracking-wider text-white/35 mt-1">
+                            job{folder.total === 1 ? '' : 's'}
+                          </p>
                         </div>
                       </div>
-                      <span className="text-lg font-bold text-white tabular-nums shrink-0">{folder.total}</span>
-                    </div>
 
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-white/40">
-                        <span>
-                          {done}/{folder.total} delivered
-                        </span>
-                        <span>{progress}%</span>
+                      <div className="mt-4 space-y-2">
+                        <div className="flex justify-between text-[9px] font-bold uppercase tracking-wider text-white/40">
+                          <span>
+                            {done}/{folder.total} delivered
+                          </span>
+                          <span className="tabular-nums">{progress}%</span>
+                        </div>
+                        <div className="h-1.5 rounded-full bg-black/40 overflow-hidden border border-white/[0.06]">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${tone.bar}`}
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
                       </div>
-                      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            progress === 100 ? 'bg-emerald-400/80' : 'bg-primary/70'
-                          }`}
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                    </div>
 
-                    <div className="flex flex-wrap gap-1.5 text-[9px] font-bold uppercase tracking-wider">
-                      {folder.todo > 0 && (
-                        <span className="px-2 py-0.5 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-300">
-                          {folder.todo} to edit
+                      <div className="mt-3 flex items-center justify-between gap-2">
+                        <div className="flex flex-wrap gap-1.5 text-[9px] font-bold uppercase tracking-wider">
+                          {folder.todo > 0 && (
+                            <span className="px-2 py-0.5 rounded-md border border-amber-500/30 bg-amber-500/10 text-amber-300">
+                              {folder.todo} to edit
+                            </span>
+                          )}
+                          {folder.overdue > 0 && (
+                            <span className="px-2 py-0.5 rounded-md border border-red-500/30 bg-red-500/10 text-red-300">
+                              {folder.overdue} overdue
+                            </span>
+                          )}
+                          {folder.todo === 0 && (
+                            <span className="px-2 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+                              Complete
+                            </span>
+                          )}
+                        </div>
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-white/35 group-hover:text-white/70 transition-colors shrink-0">
+                          Open <ArrowRight className="w-3 h-3" />
                         </span>
-                      )}
-                      {folder.overdue > 0 && (
-                        <span className="px-2 py-0.5 rounded-md border border-red-500/30 bg-red-500/10 text-red-300">
-                          {folder.overdue} overdue
-                        </span>
-                      )}
-                      {folder.todo === 0 && (
-                        <span className="px-2 py-0.5 rounded-md border border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
-                          All delivered
-                        </span>
-                      )}
+                      </div>
                     </div>
                   </button>
                 )
@@ -985,21 +1055,46 @@ function EditorTab({
         )
       ) : (
         <div className="space-y-4">
-          <div className={`${adminCard} p-4 flex flex-wrap items-center justify-between gap-3`}>
-            <button
-              type="button"
-              onClick={() => setSelectedDay(null)}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 ${adminBtnGhost}`}
-            >
-              <ArrowLeft className="w-3.5 h-3.5" /> All folders
-            </button>
-            <div className="text-right">
-              <p className="text-sm font-semibold text-white">{formatDayFolderLabel(selectedDay)}</p>
-              <p className="text-[10px] text-white/40 font-mono mt-0.5">
-                Approved {selectedDay}
-                {selectedDay === todayKey() ? ' · Today' : ''} · {dayBookings.length} job
-                {dayBookings.length === 1 ? '' : 's'}
-              </p>
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.06] to-transparent">
+            <div className="flex items-center gap-2 border-b border-white/10 bg-white/[0.03] px-3 py-2">
+              <button
+                type="button"
+                onClick={() => setSelectedDay(null)}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md ${adminBtnGhost}`}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" /> Folders
+              </button>
+              <span className="text-white/25">/</span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white">
+                <FolderOpen className="w-3.5 h-3.5 text-primary" />
+                {formatDayFolderLabel(selectedDay)}
+              </span>
+              {selectedDay === todayKey() && (
+                <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/20 text-primary border border-primary/30">
+                  Today
+                </span>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Shoot day</p>
+                <p className="text-sm font-semibold text-white mt-0.5 font-mono">{selectedDay}</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white/60">
+                  {dayBookings.length} job{dayBookings.length === 1 ? '' : 's'}
+                </span>
+                {dayFolderStats.todo > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+                    {dayFolderStats.todo} to edit
+                  </span>
+                )}
+                {dayFolderStats.overdue > 0 && (
+                  <span className="inline-flex items-center gap-1.5 rounded-md border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-red-300">
+                    {dayFolderStats.overdue} overdue
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
