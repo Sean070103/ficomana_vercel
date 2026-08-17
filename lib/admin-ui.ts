@@ -120,6 +120,8 @@ export function notificationTypeBadge(type: string) {
       return 'text-white/40'
     case 'OPS_REMINDER':
       return 'text-amber-300'
+    case 'OPS_PAID':
+      return 'text-emerald-400'
     default:
       return 'text-white/60'
   }

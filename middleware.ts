@@ -15,6 +15,7 @@ export const config = {
     '/api/bookings/:path*',
     '/api/notifications',
     '/api/notifications/:path*',
+    '/api/ops-subscriptions',
     '/api/emails/logs',
     '/api/emails/send',
     '/api/emails/health',

@@ -72,6 +72,7 @@ export interface Notification {
     | 'RAW_PHOTO_REJECTED'
     | 'EDITED_PHOTOS_READY'
     | 'OPS_REMINDER'
+    | 'OPS_PAID'
   message: string
   isRead: boolean
   createdAt: string
@@ -459,6 +460,42 @@ export async function markNotificationRead(id: string): Promise<void> {
     const notifs = await getNotifications()
     cacheNotifications(notifs.map((n) => (n.id === id ? { ...n, isRead: true } : n)))
     dispatchAdminRefresh()
+  }
+}
+
+export type OpsSubscriptionStatus = {
+  period: {
+    cycleKey: string
+    periodEnd: string
+    daysLeft: number
+    shouldNotify: boolean
+    isOverdue: boolean
+  }
+  isPaid: boolean
+}
+
+export async function getOpsSubscriptionStatus(): Promise<OpsSubscriptionStatus | null> {
+  try {
+    const res = await fetch('/api/ops-subscriptions', { cache: 'no-store', credentials: 'include' })
+    if (res.ok) return (await res.json()) as OpsSubscriptionStatus
+  } catch (error) {
+    console.error('getOpsSubscriptionStatus failed:', error)
+  }
+  return null
+}
+
+export async function markOpsSubscriptionPaid(): Promise<boolean> {
+  try {
+    const res = await fetch('/api/ops-subscriptions', {
+      method: 'POST',
+      credentials: 'include',
+    })
+    if (!res.ok) return false
+    dispatchAdminRefresh()
+    return true
+  } catch (error) {
+    console.error('markOpsSubscriptionPaid failed:', error)
+    return false
   }
 }
 

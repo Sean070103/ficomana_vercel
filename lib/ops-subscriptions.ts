@@ -91,10 +91,31 @@ export function buildEmailStorageReminderMessage(period: SubscriptionPeriod): st
   return `${EMAIL_STORAGE_SUB.label} renews in ${period.daysLeft} days (${endLabel}). Availed ${EMAIL_STORAGE_SUB.startedOn} — renew before the period ends.`
 }
 
+export function isEmailStorageCyclePaid(
+  notifications: Pick<Notification, 'bookingId' | 'type'>[],
+  cycleKey: string,
+): boolean {
+  const bookingId = emailStorageOpsBookingId(cycleKey)
+  return notifications.some((n) => n.type === 'OPS_PAID' && n.bookingId === bookingId)
+}
+
+export function buildEmailStoragePaidMessage(period: SubscriptionPeriod): string {
+  const endLabel = period.periodEnd.toLocaleDateString('en-PH', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+  return `${EMAIL_STORAGE_SUB.label} marked paid for period ending ${endLabel}.`
+}
+
 /** Draft notification for the current warn window (stable bookingId per cycle). */
-export function getActiveEmailStorageReminder(now = new Date()): Notification | null {
+export function getActiveEmailStorageReminder(
+  now = new Date(),
+  notifications: Pick<Notification, 'bookingId' | 'type'>[] = [],
+): Notification | null {
   const period = getEmailStoragePeriod(now)
   if (!period.shouldNotify) return null
+  if (isEmailStorageCyclePaid(notifications, period.cycleKey)) return null
 
   return {
     id: `pending-${emailStorageOpsBookingId(period.cycleKey)}`,

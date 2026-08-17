@@ -27,7 +27,7 @@ function mergeNotifications(primary: Notification[], secondary: Notification[]) 
 
 /** Ensure the email-storage renewal reminder exists in DB so mark-read works. */
 async function ensureOpsReminders(existing: Notification[]): Promise<Notification[]> {
-  const draft = getActiveEmailStorageReminder()
+  const draft = getActiveEmailStorageReminder(new Date(), existing)
   if (!draft) return existing
 
   const already = existing.find(
