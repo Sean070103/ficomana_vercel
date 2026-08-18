@@ -49,96 +49,108 @@ export default function AdminOpsNotes() {
 
   return (
     <div
-      className={`${adminCard} p-4 flex gap-3 items-start ${
-        isPaid
-          ? 'border-emerald-500/25 bg-emerald-500/[0.06]'
-          : urgent
-            ? 'border-red-500/30 bg-red-500/[0.08]'
-            : warn
-              ? 'border-amber-500/25 bg-amber-500/[0.07]'
-              : 'border-amber-500/20 bg-amber-500/[0.05]'
-      }`}
+      className={`${adminCard} group relative flex items-start gap-4 overflow-hidden p-5 transition-all duration-500 hover:shadow-[0_8px_32px_rgba(0,0,0,0.2)]`}
       role="note"
     >
+      {/* Subtle radial gradient background hint based on status */}
       <div
-        className={`rounded-lg border p-2 shrink-0 ${
+        className={`pointer-events-none absolute -inset-px opacity-20 transition-opacity duration-500 group-hover:opacity-30 ${
           isPaid
-            ? 'border-emerald-500/30 bg-emerald-500/15 text-emerald-300'
+            ? 'bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-emerald-500/20 to-transparent'
             : urgent
-              ? 'border-red-500/30 bg-red-500/15 text-red-300'
-              : 'border-amber-500/30 bg-amber-500/15 text-amber-300'
+              ? 'bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-red-500/20 to-transparent'
+              : 'bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-amber-500/20 to-transparent'
+        }`}
+        aria-hidden="true"
+      />
+
+      <div
+        className={`relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/5 shadow-inner transition-colors duration-500 ${
+          isPaid
+            ? 'bg-emerald-500/10 text-emerald-400'
+            : urgent
+              ? 'bg-red-500/10 text-red-400'
+              : 'bg-amber-500/10 text-amber-400'
         }`}
       >
-        {isPaid ? <Check className="w-4 h-4" /> : <HardDrive className="w-4 h-4" />}
+        {isPaid ? <Check className="h-4 w-4" /> : <HardDrive className="h-4 w-4" />}
       </div>
-      <div className="min-w-0 flex-1 space-y-2">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="space-y-1 min-w-0">
-            <p
-              className={`text-[10px] font-bold tracking-widest uppercase ${
-                isPaid ? 'text-emerald-300/90' : urgent ? 'text-red-300/90' : 'text-amber-300/90'
-              }`}
-            >
-              Ops note
-              {isPaid ? ' · paid' : warn ? ' · renewal soon' : ''}
+
+      <div className="relative z-10 min-w-0 flex-1 space-y-3">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1.5 min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/50">
+              Ops Note
+              <span
+                className={`transition-colors duration-500 ${
+                  isPaid ? 'text-emerald-400' : urgent ? 'text-red-400' : warn ? 'text-amber-400' : ''
+                }`}
+              >
+                {isPaid ? ' · Paid' : warn ? ' · Renewal Soon' : ''}
+              </span>
             </p>
-            <p className="text-sm font-semibold text-white">{EMAIL_STORAGE_SUB.label}</p>
+            <h3 className="text-base font-medium tracking-tight text-white/95">{EMAIL_STORAGE_SUB.label}</h3>
           </div>
+
           {!loading && !isPaid && (
             <button
               type="button"
               onClick={() => void handleMarkPaid()}
               disabled={markingPaid}
-              className={`${adminBtnPrimary} shrink-0 px-4 py-2 inline-flex items-center gap-1.5`}
+              className="relative shrink-0 overflow-hidden rounded-lg bg-white/5 px-4 py-2 text-xs font-medium text-white ring-1 ring-inset ring-white/10 transition-all hover:bg-white/10 hover:ring-white/20 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50"
             >
               {markingPaid ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-white/70" />
                   Saving…
-                </>
+                </span>
               ) : (
-                'Mark paid'
+                'Mark as Paid'
               )}
             </button>
           )}
+
           {!loading && isPaid && (
-            <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-emerald-300 shrink-0">
-              <Check className="w-3.5 h-3.5" />
+            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 ring-1 ring-inset ring-emerald-500/20">
+              <Check className="h-3 w-3" />
               Paid
             </span>
           )}
         </div>
-        <p className="text-[12px] text-white/65 leading-relaxed">
+
+        <p className="text-sm leading-relaxed text-white/60">
           {isPaid ? (
             <>
-              This period is marked <strong className="text-emerald-300">paid</strong> through{' '}
-              <strong className="text-white/85">{endLabel}</strong>. Renewal reminders are paused until the next billing
-              cycle.
+              This period is marked <strong className="font-medium text-emerald-400">paid</strong> through{' '}
+              <strong className="font-medium text-white/85">{endLabel}</strong>. Renewal reminders are paused until the next
+              billing cycle.
             </>
           ) : (
             <>
-              Availed on <strong className="text-white/85">July 17, 2026</strong>. Current period ends{' '}
-              <strong className="text-white/85">{endLabel}</strong>
+              Availed on <strong className="font-medium text-white/85">July 17, 2026</strong>. Current period ends{' '}
+              <strong className="font-medium text-white/85">{endLabel}</strong>
               {period.daysLeft >= 0 ? (
                 <>
                   {' '}
-                  (<strong className="text-white/85">{period.daysLeft} day{period.daysLeft === 1 ? '' : 's'}</strong>{' '}
+                  (<strong className="font-medium text-white/85">{period.daysLeft} day{period.daysLeft === 1 ? '' : 's'}</strong>{' '}
                   left).
                 </>
               ) : (
                 <>
                   {' '}
-                  — <strong className="text-red-300">past due / renew now</strong>.
+                  — <strong className="font-medium text-red-400">past due / renew now</strong>.
                 </>
               )}{' '}
               Staff get a notification in the bell menu starting{' '}
-              <strong className="text-white/85">{EMAIL_STORAGE_SUB.warnDaysBefore} days</strong> before renewal.
+              <strong className="font-medium text-white/85">{EMAIL_STORAGE_SUB.warnDaysBefore} days</strong> before renewal.
             </>
           )}
         </p>
+
         {!isPaid && warn && (
-          <p className="text-[11px] text-white/45">
-            After payment, click <strong className="text-white/65">Mark paid</strong> to clear this cycle&apos;s reminder.
+          <p className="text-xs text-white/40">
+            After payment, click <strong className="font-medium text-white/60">Mark as Paid</strong> to clear this cycle&apos;s
+            reminder.
           </p>
         )}
       </div>
