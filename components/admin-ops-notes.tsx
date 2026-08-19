@@ -92,7 +92,7 @@ export default function AdminOpsNotes() {
             <h3 className="text-base font-medium tracking-tight text-white/95">{EMAIL_STORAGE_SUB.label}</h3>
           </div>
 
-          {!loading && !isPaid && (
+          {!loading && !isPaid && warn && (
             <button
               type="button"
               onClick={() => void handleMarkPaid()}
