@@ -127,7 +127,7 @@ export default function AdminOpsNotes() {
             </>
           ) : (
             <>
-              Availed on <strong className="font-medium text-white/85">July 17, 2026</strong>. Current period ends{' '}
+              Availed on <strong className="font-medium text-white/85">August 17, 2026</strong>. Current period ends{' '}
               <strong className="font-medium text-white/85">{endLabel}</strong>
               {period.daysLeft >= 0 ? (
                 <>

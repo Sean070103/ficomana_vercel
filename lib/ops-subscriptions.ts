@@ -5,7 +5,7 @@ export const EMAIL_STORAGE_SUB = {
   id: 'email-storage',
   label: 'Monthly storage subscription (email)',
   /** First billing period start (YYYY-MM-DD, local studio date). */
-  startedOn: '2026-07-17',
+  startedOn: '2026-08-17',
   /** Warn this many days before the period ends. */
   warnDaysBefore: 7,
   bookingIdPrefix: 'OPS-EMAIL-STORAGE',
