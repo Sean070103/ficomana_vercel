@@ -52,7 +52,7 @@ const otherPackages = [
   {
     id: 'capping-pinning',
     name: 'CAPPING AND PINNING PHOTOSHOOT',
-    subtitle: 'Other service',
+    subtitle: 'Other service · 10 slots only per day',
     price: 'Php 4,000',
     includes: cappingIncludes,
   },

@@ -73,7 +73,7 @@ export const PACKAGE_SEED_ROWS: PackageSeedRow[] = [
     price_display: '₱4,000',
     price_amount: 4000,
     duration: 'Studio session',
-    description: 'Other service · ₱500 deposit required',
+    description: 'Other service · 10 slots only per day · ₱500 deposit required',
     features: [
       'Free Makeup',
       '2 edited/enhanced photos',

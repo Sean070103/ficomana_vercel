@@ -85,7 +85,7 @@ const graduationPackages: BookingPackage[] = [
     title: 'CAPPING AND PINNING PHOTOSHOOT',
     price: '₱4,000',
     duration: 'Studio session',
-    description: 'Other service · ₱500 deposit required',
+    description: 'Other service · 10 slots only per day · ₱500 deposit required',
     features: [
       'Free Makeup',
       '2 edited/enhanced photos',

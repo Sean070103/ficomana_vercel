@@ -753,7 +753,7 @@ function BookingsManagement() {
             <div className="sm:col-span-2 lg:col-span-4 space-y-2">
               <span className={adminLabel}>Package category</span>
               <div className="flex flex-wrap gap-2">
-                {(['graduation', 'self-portrait', 'creative'] as const).map((category) => {
+                {(['graduation', 'capping-pinning', 'self-portrait', 'creative'] as BookingPackageCategory[]).map((category) => {
                   const count = walkInPackages.filter((pkg) => pkg.category === category).length
                   if (count === 0) return null
                   return (
