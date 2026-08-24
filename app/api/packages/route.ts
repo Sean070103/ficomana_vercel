@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { isSupabaseConfigured } from '@/lib/supabase/env'
 import { getSupabaseAdmin } from '@/lib/supabase/admin'
 import { listPackagesFromDb, syncPackagesToDb } from '@/lib/supabase-store'
-import { bookingPackages, type BookingPackage } from '@/lib/booking-packages'
+import { bookingPackages, enrichBookingPackageFromCatalog, type BookingPackage } from '@/lib/booking-packages'
 
 function codePackagesToApi(category?: string | null): BookingPackage[] {
   return category ? bookingPackages.filter((p) => p.category === category) : bookingPackages
@@ -16,6 +16,10 @@ export async function GET(request: Request) {
     const category = searchParams.get('category')
 
     if (isSupabaseConfigured()) {
+      if (getSupabaseAdmin() && process.env.NODE_ENV === 'development') {
+        await syncPackagesToDb(getSupabaseAdmin()!)
+      }
+
       let rows = await listPackagesFromDb(supabase, category || undefined)
 
       if ((!rows || rows.length === 0) && getSupabaseAdmin()) {
@@ -24,17 +28,19 @@ export async function GET(request: Request) {
       }
 
       if (rows && rows.length > 0) {
-        const bookable: BookingPackage[] = rows.map((p) => ({
-          id: p.id,
-          category: p.category as BookingPackage['category'],
-          title: p.title,
-          price: p.price,
-          duration: p.duration,
-          description: p.description,
-          features: p.features,
-          slotType: p.slotType,
-          note: p.note,
-        }))
+        const bookable: BookingPackage[] = rows.map((p) =>
+          enrichBookingPackageFromCatalog({
+            id: p.id,
+            category: p.category as BookingPackage['category'],
+            title: p.title,
+            price: p.price,
+            duration: p.duration,
+            description: p.description,
+            features: p.features,
+            slotType: p.slotType,
+            note: p.note,
+          }),
+        )
         return NextResponse.json(bookable)
       }
     }

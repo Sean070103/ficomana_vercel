@@ -10,6 +10,9 @@ export const MAKEUP_SLOTS_PER_SESSION = 2
 /** One client per Slot 1 / Slot 2 — prevents double booking on the public calendar. */
 export const BOOKINGS_PER_SLOT = 1
 export const ARRIVAL_CUTOFF = '4:00 PM'
+export const FICO_STUDIO_OPEN = '8:00 AM'
+export const FICO_STUDIO_HOURS = `${FICO_STUDIO_OPEN} – ${ARRIVAL_CUTOFF}`
+export const FICO_AVAILABILITY_LABEL = `Available anytime from ${FICO_STUDIO_HOURS}`
 export const ARRIVAL_BUFFER_MINUTES = 15
 
 export type SessionSlot = {
@@ -84,8 +87,9 @@ export const MAKEUP_SLOTS = ALL_MANA_SLOTS
 
 export type MakeupSlot = SessionSlot
 
-export const FICO_BOOKING_TIME_LABEL = `Operating hours · Arrive before ${ARRIVAL_CUTOFF}`
-export const FICO_ARRIVAL_LABEL = `Arrive anytime before ${ARRIVAL_CUTOFF}`
+export const FICO_BOOKING_TIME_LABEL = `Available Time: ${FICO_STUDIO_HOURS}`
+export const FICO_ARRIVAL_LABEL = FICO_AVAILABILITY_LABEL
+export const FICO_SHOOT_TIME_LABEL = FICO_AVAILABILITY_LABEL
 
 export function formatDateKey(date: Date): string {
   const y = date.getFullYear()

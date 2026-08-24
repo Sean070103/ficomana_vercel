@@ -1,6 +1,6 @@
 import { ficoPackages, manaPackages, creativePackages } from '@/lib/self-portrait-packages'
 
-export type BookingPackageCategory = 'graduation' | 'self-portrait' | 'creative'
+export type BookingPackageCategory = 'graduation' | 'capping-pinning' | 'self-portrait' | 'creative'
 
 export type BookingPackage = {
   id: string
@@ -13,6 +13,7 @@ export type BookingPackage = {
   slotType: 'makeup' | 'standard'
   badge?: string
   note?: string
+  heroImage?: string
 }
 
 const WALK_IN_INELIGIBLE = /walk-in clients are not eligible/i
@@ -23,6 +24,7 @@ export function isWalkInEligiblePackage(pkg: Pick<BookingPackage, 'description' 
 
 export const BOOKING_PACKAGE_CATEGORY_LABELS: Record<BookingPackageCategory, string> = {
   graduation: 'Graduation',
+  'capping-pinning': 'Capping & Pinning',
   'self-portrait': 'Self Portrait',
   creative: 'Creative',
 }
@@ -39,7 +41,7 @@ const graduationPackages: BookingPackage[] = [
     title: 'FICO PACKAGE',
     price: '₱3,500',
     duration: '30 mins',
-    description: '',
+    description: 'Available anytime from 8:00 AM – 4:00 PM',
     features: [
       'Free use of Toga & Cap',
       'Free use of Alampay',
@@ -76,6 +78,25 @@ const graduationPackages: BookingPackage[] = [
       'Receive 5 enhanced photos 14 days after selection',
     ],
     slotType: 'makeup',
+  },
+  {
+    id: 'capping-pinning',
+    category: 'capping-pinning',
+    title: 'CAPPING AND PINNING PHOTOSHOOT',
+    price: '₱4,000',
+    duration: 'Studio session',
+    description: 'Other service · ₱500 deposit required',
+    features: [
+      'Free Makeup',
+      '2 edited/enhanced photos',
+      '1 layout/outfit',
+      'All raw copies',
+      '1 pc. 8R Glass-to-Glass Frame',
+      '2 pcs. 4R-sized printed copies',
+      '7–14 working days for editing process',
+    ],
+    slotType: 'makeup',
+    heroImage: '/capping_bg.jpg',
   },
 ]
 
@@ -119,6 +140,19 @@ export const bookingPackages: BookingPackage[] = [...graduationPackages, ...self
 
 export function getBookingPackage(id: string): BookingPackage | undefined {
   return bookingPackages.find((pkg) => pkg.id === id)
+}
+
+/** Merge UI-only fields from the code catalog when packages are loaded from Supabase. */
+export function enrichBookingPackageFromCatalog(pkg: BookingPackage): BookingPackage {
+  const catalog = getBookingPackage(pkg.id)
+  if (!catalog) return pkg
+  return {
+    ...pkg,
+    description: pkg.description || catalog.description,
+    heroImage: catalog.heroImage,
+    badge: catalog.badge ?? pkg.badge,
+    note: pkg.note ?? catalog.note,
+  }
 }
 
 export function getBookingUrl(packageId: string): string {

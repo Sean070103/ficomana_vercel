@@ -1,7 +1,7 @@
 /** Canonical package rows synced to Supabase `packages` table. */
 export type PackageSeedRow = {
   id: string
-  category: 'graduation' | 'self-portrait' | 'creative'
+  category: 'graduation' | 'capping-pinning' | 'self-portrait' | 'creative'
   title: string
   price_display: string
   price_amount: number
@@ -25,7 +25,7 @@ export const PACKAGE_SEED_ROWS: PackageSeedRow[] = [
     price_display: '₱3,500',
     price_amount: 3500,
     duration: '30 mins',
-    description: '',
+    description: 'Available anytime from 8:00 AM – 4:00 PM',
     features: [
       'Free use of Toga & Cap',
       'Free use of Alampay',
@@ -65,6 +65,26 @@ export const PACKAGE_SEED_ROWS: PackageSeedRow[] = [
     ],
     slot_type: 'makeup',
     sort_order: 2,
+  },
+  {
+    id: 'capping-pinning',
+    category: 'capping-pinning',
+    title: 'CAPPING AND PINNING PHOTOSHOOT',
+    price_display: '₱4,000',
+    price_amount: 4000,
+    duration: 'Studio session',
+    description: 'Other service · ₱500 deposit required',
+    features: [
+      'Free Makeup',
+      '2 edited/enhanced photos',
+      '1 layout/outfit',
+      'All raw copies',
+      '1 pc. 8R Glass-to-Glass Frame',
+      '2 pcs. 4R-sized printed copies',
+      '7–14 working days for editing process',
+    ],
+    slot_type: 'makeup',
+    sort_order: 3,
   },
   {
     id: 'creative-package',

@@ -26,7 +26,9 @@ import {
 import {
   formatDateKey,
   FICO_ARRIVAL_LABEL,
+  FICO_AVAILABILITY_LABEL,
   FICO_BOOKING_TIME_LABEL,
+  FICO_SHOOT_TIME_LABEL,
   FICO_DAILY_LIMIT,
   formatSlotBookingTime,
   getFicoRemainingCapacity,
@@ -343,7 +345,7 @@ function BookingForm() {
         bookingTime: slot ? formatSlotBookingTime(slot) : FICO_BOOKING_TIME_LABEL,
         slotId: slot?.id,
         arrivalTime: slot?.arrivalTime ?? FICO_ARRIVAL_LABEL,
-        shootTime: slot?.shootTime ?? 'Flexible (before 4:00 PM)',
+        shootTime: slot?.shootTime ?? FICO_SHOOT_TIME_LABEL,
         note: graduationNote || undefined,
         schoolName: isGraduationPackage ? schoolName : undefined,
         course: isGraduationPackage ? course : undefined,
@@ -437,7 +439,7 @@ function BookingForm() {
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-center text-white">1. Select Your Package</h3>
             <div className="flex justify-center gap-2 flex-wrap">
-              {(['graduation', 'self-portrait', 'creative'] as const).map((c) => (
+              {(['graduation', 'capping-pinning', 'self-portrait', 'creative'] as const).map((c) => (
                 <button
                   key={c}
                   type="button"
@@ -449,7 +451,7 @@ function BookingForm() {
                     activeCategory === c ? 'border-primary bg-primary text-primary-foreground' : 'border-white/10 text-white/60 hover:border-white/30 hover:text-white'
                   }`}
                 >
-                  {c === 'self-portrait' ? 'Self Portrait' : c}
+                  {c === 'self-portrait' ? 'Self Portrait' : c === 'capping-pinning' ? 'Capping & Pinning' : c}
                 </button>
               ))}
             </div>
@@ -470,14 +472,26 @@ function BookingForm() {
                 return (
                   <div
                     key={pkg.id}
-                    className={`border rounded-sm transition-colors ${
+                    className={`relative overflow-hidden border rounded-sm transition-colors ${
                       selected ? 'border-primary bg-primary/10 ring-1 ring-primary/30' : 'border-white/10 hover:border-white/25'
                     }`}
                   >
+                    {pkg.heroImage ? (
+                      <>
+                        <Image
+                          src={pkg.heroImage}
+                          alt=""
+                          fill
+                          className="object-cover object-center opacity-35"
+                          sizes="(max-width: 640px) 100vw, 50vw"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/75 to-black/45" />
+                      </>
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => setSelectedSession(pkg)}
-                      className="w-full text-left p-5 pb-3"
+                      className="relative z-10 w-full text-left p-5 pb-3"
                     >
                       <Icon className={`w-5 h-5 mb-2 ${selected ? 'text-white' : 'text-white/40'}`} />
                       <p className="font-semibold text-sm text-white tracking-wide">{pkg.title}</p>
@@ -488,7 +502,7 @@ function BookingForm() {
                     </button>
 
                     {pkg.features.length > 0 && (
-                      <details className="group border-t border-white/10 mx-0">
+                      <details className="group relative z-10 border-t border-white/10 mx-0">
                         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-5 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white/45 hover:text-white/70 select-none [&::-webkit-details-marker]:hidden">
                           <span>Includes</span>
                           <ChevronDown className="w-3.5 h-3.5 shrink-0 transition-transform group-open:rotate-180" />
@@ -537,7 +551,7 @@ function BookingForm() {
               <p className="text-sm text-white/70 max-w-xl mx-auto">
                 {isMakeupPackage
                   ? 'Pick a date, then choose an available session slot.'
-                  : `FICO packages: up to ${FICO_DAILY_LIMIT} per day. Arrive before 4:00 PM.`}
+                  : `Up to ${FICO_DAILY_LIMIT} per day · ${FICO_AVAILABILITY_LABEL}`}
               </p>
             </div>
 
@@ -684,7 +698,8 @@ function BookingForm() {
                       </p>
                     )}
                     <p className="text-xs text-white/40 mt-4 leading-relaxed max-w-sm mx-auto">
-                      Arrive before 4:00 PM. No specific time slot — first come, first served within daily capacity.
+                      {FICO_AVAILABILITY_LABEL}. No specific time slot — first come, first served within daily
+                      capacity.
                     </p>
                   </div>
                 )}
