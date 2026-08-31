@@ -131,7 +131,8 @@ function BookingForm() {
   const [step, setStep] = useState(1)
   const [selectedSession, setSelectedSession] = useState<BookingPackage | null>(null)
   const [activeCategory, setActiveCategory] = useState<BookingPackageCategory>('graduation')
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const [viewYear, setViewYear] = useState(() => new Date().getFullYear())
+  const [viewMonth, setViewMonth] = useState(() => new Date().getMonth())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedTimeSlot, setSelectedTimeSlot] = useState('')
   const [selectedSlotId, setSelectedSlotId] = useState('')
@@ -224,20 +225,18 @@ function BookingForm() {
     selectedDate && !isMakeupPackage ? getFicoRemainingCapacity(allBookings, dateKey, ficoSpotBlocks) : null
   const selectedFicoHold = dateKey ? getFicoSpotBlock(ficoSpotBlocks, dateKey) : undefined
   const filteredPackages = packages.filter((p) => p.category === activeCategory)
-  const daysInMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
-  const startDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1).getDay()
   const isPast = (day: number) => {
     const t = new Date()
     t.setHours(0, 0, 0, 0)
-    return new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day) < t
+    return new Date(viewYear, viewMonth, day) < t
   }
   const isSame = (day: number) =>
     selectedDate &&
     selectedDate.getDate() === day &&
-    selectedDate.getMonth() === currentMonth.getMonth() &&
-    selectedDate.getFullYear() === currentMonth.getFullYear()
+    selectedDate.getMonth() === viewMonth &&
+    selectedDate.getFullYear() === viewYear
   const dateKeyForDay = (day: number) =>
-    formatDateKey(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day))
+    formatDateKey(new Date(viewYear, viewMonth, day))
   const isDayFull = (day: number) =>
     selectedSession
       ? isDateFullForPackage(allBookings, dateKeyForDay(day), selectedSession.id, ficoSpotBlocks)
@@ -255,11 +254,13 @@ function BookingForm() {
       : (ficoRemaining ?? 0) > 0)
 
   const cells: (number | null)[] = []
-  for (let i = 0; i < startDay(currentMonth); i++) cells.push(null)
-  for (let d = 1; d <= daysInMonth(currentMonth); d++) cells.push(d)
+  const startPad = new Date(viewYear, viewMonth, 1).getDay()
+  const totalDays = new Date(viewYear, viewMonth + 1, 0).getDate()
+  for (let i = 0; i < startPad; i++) cells.push(null)
+  for (let d = 1; d <= totalDays; d++) cells.push(d)
 
   const pickDate = (day: number) => {
-    setSelectedDate(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day))
+    setSelectedDate(new Date(viewYear, viewMonth, day))
     setSelectedSlotId('')
     setSelectedTimeSlot(isMakeupPackage ? '' : FICO_BOOKING_TIME_LABEL)
   }
@@ -567,14 +568,16 @@ function BookingForm() {
                 <div className={`${cardClass} p-4 sm:p-5`}>
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xs uppercase tracking-wider font-semibold text-white/70">
-                      {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+                      {monthNames[viewMonth]} {viewYear}
                     </span>
                     <div className="flex gap-1 rounded-sm border border-white/10 overflow-hidden">
                       <button
                         type="button"
-                        onClick={() =>
-                          setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))
-                        }
+                        onClick={() => {
+                          const d = new Date(viewYear, viewMonth - 1, 1)
+                          setViewYear(d.getFullYear())
+                          setViewMonth(d.getMonth())
+                        }}
                         className="p-2 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
                         aria-label="Previous month"
                       >
@@ -582,9 +585,11 @@ function BookingForm() {
                       </button>
                       <button
                         type="button"
-                        onClick={() =>
-                          setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))
-                        }
+                        onClick={() => {
+                          const d = new Date(viewYear, viewMonth + 1, 1)
+                          setViewYear(d.getFullYear())
+                          setViewMonth(d.getMonth())
+                        }}
                         className="p-2 text-white/60 hover:text-white hover:bg-white/5 transition-colors"
                         aria-label="Next month"
                       >
