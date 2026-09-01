@@ -605,10 +605,10 @@ function BookingForm() {
                     ))}
                     {cells.map((day, idx) =>
                       day === null ? (
-                        <div key={idx} className="h-10" />
+                        <div key={`cal-${viewYear}-${viewMonth}-pad-${idx}`} className="h-10" />
                       ) : (
                         <button
-                          key={day}
+                          key={`cal-${viewYear}-${viewMonth}-day-${day}-${idx}`}
                           type="button"
                           disabled={isPast(day) || isDayFull(day)}
                           title={isDayFull(day) ? 'Fully booked' : undefined}
